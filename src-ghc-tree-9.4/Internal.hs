@@ -24,7 +24,7 @@ module Internal
 where
 
 import GHC.Driver.Config.Finder (initFinderOpts)
-import GHC.Tc.Plugin (TcPluginM, lookupOrig, tcPluginTrace)
+import GHC.Tc.Plugin (TcPluginM (..), lookupOrig, tcPluginTrace)
 import qualified GHC.Tc.Plugin as TcPlugin
   (newWanted, getTopEnv, tcPluginIO, findImportedModule)
 import GHC.Tc.Types (TcPlugin(..), TcPluginSolveResult(..))
@@ -33,6 +33,7 @@ import Data.Function (on)
 import Data.List (groupBy, partition, sortOn)
 import GHC.Tc.Utils.TcType (TcType)
 import Data.Maybe (mapMaybe)
+import GHC.Driver.Env (hscUnitIndexQuery)
 
 import GhcApi.Constraint (Ct(..))
 import GhcApi.GhcPlugins
@@ -53,8 +54,9 @@ lookupModule mod_nm _pkg = do
       fopts      = initFinderOpts dflags
       units      = hsc_units hsc_env
       mhome_unit = hsc_home_unit_maybe hsc_env
-  found_module <- TcPlugin.tcPluginIO $ findPluginModule fc fopts units
-                                          mhome_unit mod_nm
+  found_module <- TcPlugin.tcPluginIO $ do
+    query <- hscUnitIndexQuery hsc_env
+    findPluginModule fc fopts units query mhome_unit mod_nm
   case found_module of
     Found _ h -> return h
     _ -> do
